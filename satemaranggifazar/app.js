@@ -1,7 +1,6 @@
 /* =========================================================
-   POS KASIR - APP LOGIC (FINAL v8)
+   POS KASIR - APP LOGIC (FINAL v7)
    Login STRICT: wajib cloud, tidak ada fallback lokal
-   + VARIANT CHIPS CLICKABLE (SVG Icons)
    ========================================================= */
 
 /* ==========================================
@@ -16,63 +15,10 @@ const __taxPercent = (CFG.TAX_PERCENT !== undefined && CFG.TAX_PERCENT !== null 
     : 10;
 const TAX_RATE_CONST = __taxPercent / 100;
 
-/* ==========================================
-   SVG ICONS — HOT & ICE (Rapi, Professional)
-   ========================================== */
-const SVG_HOT = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h13v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5z"/><path d="M17 11h1a2.5 2.5 0 0 1 0 5h-1"/><path d="M8 3c0 1 .6 1.5.6 2.5S8 7 8 8"/><path d="M12 3c0 1 .6 1.5.6 2.5S12 7 12 8"/></svg>';
-
-const SVG_ICE = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>';
-
-/* ==========================================
-   AUTO-MIGRATE — Inject variant ke produk lama
-   ========================================== */
-(function autoMigrateVariants() {
-    try {
-        const stored = localStorage.getItem('luxe_pos_products');
-        if (!stored) return;
-
-        let prods = JSON.parse(stored);
-        if (!Array.isArray(prods)) return;
-
-        let migrated = 0;
-
-        prods.forEach(prod => {
-            if (prod.variants && prod.variants.length) return;
-            if (prod.category !== 'Drink') return;
-
-            const n = String(prod.name).toLowerCase();
-
-            if (n.includes('ice') && (n.includes('tea') || n.includes('teh') || n.includes('lemon'))) {
-                prod.variants = [
-                    { name: 'Hot', priceDelta: 0 },
-                    { name: 'Ice', priceDelta: 0 }
-                ];
-                migrated++;
-            } else if (n.includes('kopi') || n.includes('espresso') || n.includes('latte')) {
-                prod.variants = [
-                    { name: 'Hot', priceDelta: 0 },
-                    { name: 'Ice', priceDelta: 3000 }
-                ];
-                migrated++;
-            } else if (n.includes('juice') || n.includes('jus')) {
-                prod.variants = [{ name: 'Ice', priceDelta: 0 }];
-                migrated++;
-            }
-        });
-
-        if (migrated > 0) {
-            localStorage.setItem('luxe_pos_products', JSON.stringify(prods));
-            console.log('✅ Auto-migrate: ' + migrated + ' produk diinject varian');
-        }
-    } catch (e) {
-        console.warn('Auto-migrate skip:', e);
-    }
-})();
-
 const api = {
     async call(action, payload = {}) {
         if (!API_URL || API_URL.includes('GANTI_INI')) {
-            console.warn('⚠️ API_URL belum dikonfigurasi');
+            console.warn('⚠️ API_URL belum dikonfigurasi di config.js');
             return null;
         }
         try {
@@ -191,6 +137,9 @@ async function loadFromCloud() {
     return true;
 }
 
+/* =========================================
+   AUTO SYNC
+   ========================================= */
 function hashData(obj) {
     try { return JSON.stringify(obj); } catch(e) { return ''; }
 }
@@ -405,12 +354,12 @@ function closeShiftReceiptModal() {
    3. STATE
    ========================================== */
 const defaultProducts = [
-    { id: 1, name: "Espresso Single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
-    { id: 2, name: "Iced Caramel Latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
-    { id: 3, name: "Nasi Goreng Special", category: "Food", price: 35000, hpp: 15000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&q=80" },
-    { id: 4, name: "Chicken Steak", category: "Food", price: 45000, hpp: 22000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&q=80" },
-    { id: 5, name: "French Fries", category: "Snack", price: 20000, hpp: 8000, discountType: "percent", discountValue: 0, icon: "ri-goblet-line", image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80" },
-    { id: 7, name: "Choco Lava Cake", category: "Dessert", price: 25000, hpp: 11000, discountType: "percent", discountValue: 0, icon: "ri-cake-3-line", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&q=80" }
+    { id: 1, name: "espresso single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80" },
+    { id: 2, name: "iced caramel latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80" },
+    { id: 3, name: "nasi goreng special", category: "Food", price: 35000, hpp: 15000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&q=80" },
+    { id: 4, name: "chicken steak", category: "Food", price: 45000, hpp: 22000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&q=80" },
+    { id: 5, name: "french fries", category: "Snack", price: 20000, hpp: 8000, discountType: "percent", discountValue: 0, icon: "ri-goblet-line", image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80" },
+    { id: 7, name: "choco lava cake", category: "Dessert", price: 25000, hpp: 11000, discountType: "percent", discountValue: 0, icon: "ri-cake-3-line", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&q=80" }
 ];
 
 let products = JSON.parse(localStorage.getItem('luxe_pos_products')) || defaultProducts;
@@ -596,7 +545,7 @@ function importLocalStorageJSON(event) {
 }
 
 /* ==========================================
-   5. AUTH
+   5. AUTH — LOGIN STRICT
    ========================================== */
 async function handleLogin() {
     const username = document.getElementById('kasir-name').value;
@@ -790,14 +739,6 @@ function calculateFinalPrice(p) {
     }
 }
 
-/* SVG Icon untuk varian — rapi & sejajar */
-function getVariantIcon(name) {
-    const n = String(name).toLowerCase().trim();
-    if (n.includes('hot') || n.includes('panas')) return SVG_HOT;
-    if (n.includes('ice') || n.includes('dingin') || n.includes('cold') || n.includes('es')) return SVG_ICE;
-    return '';
-}
-
 function renderProducts(items, targetId) {
     const container = document.getElementById(targetId);
     if (!container) return;
@@ -808,19 +749,6 @@ function renderProducts(items, targetId) {
     container.innerHTML = items.map(p => {
         const finalPrice = calculateFinalPrice(p);
         const hasDiscount = finalPrice < p.price;
-
-        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
-        const variantChips = hasVariants
-            ? `<div class="variant-chips">${p.variants.map((v, idx) => {
-                const icon = getVariantIcon(v.name);
-                return `<span class="variant-chip" onclick="addVariantToCart(${p.id}, ${idx}, event)">${icon}${v.name}</span>`;
-            }).join('')}</div>`
-            : '';
-
-        const addBtnOnclick = hasVariants
-            ? `onclick="addVariantToCart(${p.id}, 0, event)"`
-            : `onclick="addToCart(${p.id}, event)"`;
-
         return `
         <div class="product-card">
             ${currentUserRole === 'admin' ? `
@@ -833,7 +761,6 @@ function renderProducts(items, targetId) {
                 ${p.image ? `<img src="${p.image}" alt="${p.name}" onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\\'${p.icon}\\'></i>';">` : `<i class="${p.icon}"></i>`}
             </div>
             <div class="product-title">${p.name}</div>
-            ${variantChips}
             <div class="product-footer">
                 <div class="product-price">
                     ${hasDiscount ? `
@@ -841,7 +768,7 @@ function renderProducts(items, targetId) {
                         <span style="color: var(--accent);">Rp ${finalPrice.toLocaleString('id-id')}</span>
                     ` : `<span>Rp ${p.price.toLocaleString('id-id')}</span>`}
                 </div>
-                <button class="add-btn" ${addBtnOnclick}><i class="ri-add-line"></i></button>
+                <button class="add-btn" onclick="addToCart(${p.id}, event)"><i class="ri-add-line"></i></button>
             </div>
         </div>
         `;
@@ -902,7 +829,7 @@ function addNewProduct() {
     if (category === "Snack") icon = "ri-goblet-line";
     if (category === "Dessert") icon = "ri-cake-3-line";
     const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    const newProduct = { id: newId, name, category, price, hpp, discountType: "percent", discountValue: 0, icon, image: imageUrl, variants: [] };
+    const newProduct = { id: newId, name, category, price, hpp, discountType: "percent", discountValue: 0, icon, image: imageUrl };
     products.push(newProduct);
     saveState();
     api.saveProduct(newProduct);
@@ -1180,58 +1107,18 @@ function animateFlyToCart(event) {
 function addToCart(productId, event) {
     if (event) animateFlyToCart(event);
     const product = products.find(p => p.id === productId);
-    if (!product) return;
     const finalPrice = calculateFinalPrice(product);
-    const existing = cart.find(item => item.id === productId && !item.cartKey);
+    const existing = cart.find(item => item.id === productId);
     if (existing) existing.qty++;
     else cart.push({ ...product, price: finalPrice, originalPrice: product.price, qty: 1 });
     updateCart();
 }
 
-function addVariantToCart(productId, variantIndex, event) {
-    if (event) animateFlyToCart(event);
-    const product = products.find(p => p.id === productId);
-    if (!product || !Array.isArray(product.variants) || !product.variants[variantIndex]) {
-        addToCart(productId, event);
-        return;
-    }
-
-    const variant = product.variants[variantIndex];
-    const baseFinalPrice = calculateFinalPrice(product);
-    const delta = Number(variant.priceDelta) || 0;
-    const finalPrice = baseFinalPrice + delta;
-
-    const cartKey = product.id + '::' + variant.name;
-
-    const existing = cart.find(item => item.cartKey === cartKey);
-    if (existing) {
-        existing.qty++;
-    } else {
-        cart.push({
-            ...product,
-            cartKey: cartKey,
-            variantName: variant.name,
-            price: finalPrice,
-            originalPrice: (product.price || 0) + delta,
-            qty: 1
-        });
-    }
-    updateCart();
-}
-
 function updateQty(id, change) {
-    let item;
-    if (typeof id === 'string' && id.includes('::')) {
-        item = cart.find(i => i.cartKey === id);
-    } else {
-        const numId = parseInt(id, 10);
-        item = cart.find(i => i.id === numId && !i.cartKey);
-    }
+    const item = cart.find(i => i.id === id);
     if (item) {
         item.qty += change;
-        if (item.qty <= 0) {
-            cart = cart.filter(i => i !== item);
-        }
+        if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
     }
     updateCart();
 }
@@ -1287,25 +1174,19 @@ function updateCart() {
                 </div>
             `;
         } else {
-            cartList.innerHTML = cart.map(item => {
-                const itemKey = item.cartKey || item.id;
-                const badge = item.variantName
-                    ? `<span class="cart-variant-badge">${getVariantIcon(item.variantName)}<span>${item.variantName}</span></span>`
-                    : '';
-                return `
+            cartList.innerHTML = cart.map(item => `
                 <div class="cart-item">
                     <div>
-                        <strong style="font-size: 13px; color: var(--text-main);">${item.name}${badge}</strong>
+                        <strong style="font-size: 13px; color: var(--text-main);">${item.name}</strong>
                         <div style="font-size: 11px; color: var(--accent); font-weight: 700; margin-top: 2px;">Rp ${item.price.toLocaleString('id-id')}</div>
                     </div>
                     <div class="qty-control">
-                        <button class="qty-btn" onclick="updateQty('${itemKey}', -1)">-</button>
+                        <button class="qty-btn" onclick="updateQty(${item.id}, -1)">-</button>
                         <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">${item.qty}</span>
-                        <button class="qty-btn" onclick="updateQty('${itemKey}', 1)">+</button>
+                        <button class="qty-btn" onclick="updateQty(${item.id}, 1)">+</button>
                     </div>
                 </div>
-                `;
-            }).join('');
+            `).join('');
         }
     }
     const rawSubtotal = cart.reduce((sum, item) => {
@@ -1453,7 +1334,7 @@ function renderSavedBills() {
                 <span style="font-weight: 800; color: var(--accent);">Rp ${b.total.toLocaleString('id-id')}</span>
             </div>
             <div style="font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 6px; width: 100%;">
-                ${b.items.map(i => i.name + (i.variantName ? ' (' + i.variantName + ')' : '') + ' (x' + i.qty + ')').join(', ')}
+                ${b.items.map(i => i.name + ' (x' + i.qty + ')').join(', ')}
             </div>
             <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
                 <button class="btn-secondary" style="flex: 1; padding: 6px; font-size: 11px;" onclick="loadBillToCart(${index})">
@@ -1556,10 +1437,9 @@ function showReceiptModal(trx) {
         itemsListEl.innerHTML = trx.items.map(item => {
             const itemPrice = item.price || 0;
             const itemTotal = itemPrice * item.qty;
-            const variantText = item.variantName ? ' (' + item.variantName + ')' : '';
             return `
                 <div class="receipt-row" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                    <span>${item.name}${variantText} x ${item.qty}</span>
+                    <span>${item.name} x ${item.qty}</span>
                     <span>Rp ${itemTotal.toLocaleString('id-ID')}</span>
                 </div>
             `;
@@ -1792,7 +1672,7 @@ function exportHistoryCSV() {
     if (transactionHistory.length === 0) { alert("Tidak ada data!"); return; }
     let csvContent = "data:text/csv;charset=utf-8,ID Transaksi,Tanggal,Waktu,Kasir,Total Subtotal,Diskon Kupon,Pajak,Total Pembayaran,Tunai,Kembalian,Status Void,Detail Items\n";
     transactionHistory.forEach(trx => {
-        const itemsStr = trx.items.map(i => i.name + (i.variantName ? ' [' + i.variantName + ']' : '') + ' (' + i.qty + 'x)').join(' | ');
+        const itemsStr = trx.items.map(i => i.name + ' (' + i.qty + 'x)').join(' | ');
         const cleanDate = normalizeTrxDate(trx.date);
         const row = [
             trx.id, cleanDate, trx.time, '"' + trx.cashier + '"', trx.subtotal,
@@ -1931,8 +1811,7 @@ function billDapur() {
     cart.forEach(item => {
         const row = document.createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 700; font-size: 13px; border-bottom: 1px dotted #e2e8f0; padding-bottom: 4px;';
-        const variantText = item.variantName ? ' [' + item.variantName + ']' : '';
-        row.innerHTML = '<span>' + item.name + variantText + '</span><span>x' + item.qty + '</span>';
+        row.innerHTML = '<span>' + item.name + '</span><span>x' + item.qty + '</span>';
         itemsList.appendChild(row);
     });
     updateKitchenPreview();
@@ -2078,109 +1957,4 @@ function openTutupShiftModal() {
     if (document.getElementById('shift-modal-kasir')) document.getElementById('shift-modal-kasir').innerText = namaKasir;
     if (document.getElementById('shift-modal-awal')) document.getElementById('shift-modal-awal').innerText = formatRupiah(modalAwal);
     if (document.getElementById('shift-modal-tunai')) document.getElementById('shift-modal-tunai').innerText = formatRupiah(tunaiPenjualan);
-    if (document.getElementById('shift-modal-petty')) document.getElementById('shift-modal-petty').innerText = formatRupiah(totalPetty);
-    if (document.getElementById('shift-modal-ekspektasi')) document.getElementById('shift-modal-ekspektasi').innerText = formatRupiah(ekspektasiKas);
-    if (document.getElementById('shift-input-fisik')) document.getElementById('shift-input-fisik').value = '';
-    if (document.getElementById('shift-selisih-val')) document.getElementById('shift-selisih-val').innerText = 'Rp 0';
-    const tutupShiftModal = document.getElementById('tutup-shift-modal');
-    if (tutupShiftModal) tutupShiftModal.style.display = 'flex';
-}
-
-function closeTutupShiftModal() {
-    const tutupShiftModal = document.getElementById('tutup-shift-modal');
-    if (tutupShiftModal) tutupShiftModal.style.display = 'none';
-}
-
-function hitungSelisihShift() {
-    const totalPetty = pettyCashList.reduce((sum, item) => sum + item.nominal, 0);
-    const ekspektasi = modalAwal - totalPetty;
-    const fisik = parseFloat(document.getElementById('shift-input-fisik').value) || 0;
-    const selisih = fisik - ekspektasi;
-    const el = document.getElementById('shift-selisih-val');
-    if (el) {
-        el.innerText = formatRupiah(selisih);
-        el.style.color = selisih < 0 ? 'var(--danger)' : (selisih > 0 ? 'var(--success)' : 'var(--text-main)');
-    }
-}
-
-function prosesCetakLaporanShift() {
-    const totalPetty = pettyCashList.reduce((sum, item) => sum + item.nominal, 0);
-    const tunaiPenjualan = 0;
-    const ekspektasiKas = modalAwal + tunaiPenjualan - totalPetty;
-    const fisik = parseFloat(document.getElementById('shift-input-fisik').value) || 0;
-    const selisih = fisik - ekspektasiKas;
-    const namaKasir = document.getElementById('profile-name') ? document.getElementById('profile-name').innerText : 'Kasir';
-    if (document.getElementById('sr-waktu')) document.getElementById('sr-waktu').innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    if (document.getElementById('sr-kasir')) document.getElementById('sr-kasir').innerText = namaKasir;
-    if (document.getElementById('sr-modal')) document.getElementById('sr-modal').innerText = formatRupiah(modalAwal);
-    if (document.getElementById('sr-petty')) document.getElementById('sr-petty').innerText = formatRupiah(totalPetty);
-    if (document.getElementById('sr-ekspektasi')) document.getElementById('sr-ekspektasi').innerText = formatRupiah(ekspektasiKas);
-    if (document.getElementById('sr-fisik')) document.getElementById('sr-fisik').innerText = formatRupiah(fisik);
-    if (document.getElementById('sr-selisih')) document.getElementById('sr-selisih').innerText = formatRupiah(selisih);
-    const pettyContainer = document.getElementById('sr-petty-list');
-    if (pettyContainer) {
-        if (pettyCashList.length === 0) {
-            pettyContainer.innerHTML = '<div style="font-style: italic;">(Tidak ada transaksi)</div>';
-        } else {
-            pettyContainer.innerHTML = pettyCashList.map(item => `
-                <div style="display: flex; justify-content: space-between;">
-                    <span>- ${item.keterangan}</span>
-                    <span>${formatRupiah(item.nominal)}</span>
-                </div>
-            `).join('');
-        }
-    }
-    resetShiftData();
-    closeTutupShiftModal();
-    openShiftReceiptModal();
-}
-
-function resetShiftData() {
-    modalAwal = 0;
-    pettyCashList = [];
-    localStorage.removeItem('pos_modal_awal');
-    localStorage.removeItem('pos_petty_cash');
-    renderKasOverview();
-}
-
-function eksekusiPrint() { window.print(); }
-
-/* ==========================================
-   14. PROTEKSI
-   ========================================== */
-document.addEventListener('copy', function(e) { e.preventDefault(); });
-document.addEventListener('cut', function(e) { e.preventDefault(); });
-document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-document.addEventListener('keydown', function(e) {
-    const key = e.key.toLowerCase();
-    if (e.key === 'F12') { e.preventDefault(); return false; }
-    if ((e.ctrlKey && ['c', 'x', 'u', 's'].includes(key)) ||
-        (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))) {
-        if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return true;
-        e.preventDefault();
-        return false;
-    }
-});
-
-/* ==========================================
-   15. INIT
-   ========================================== */
-document.addEventListener('DOMContentLoaded', async () => {
-    const jsonInput = document.getElementById('json-import-input');
-    if (jsonInput) jsonInput.addEventListener('change', importLocalStorageJSON);
-    applyBranding();
-    initTheme();
-    updateGreeting();
-    applyRolePermissions();
-    updateCart();
-    renderSavedBills();
-    renderKasOverview();
-    const filterDateInput = document.getElementById('filter-date');
-    if (filterDateInput) filterDateInput.addEventListener('change', () => updateDashboardMetrics());
-    const kitchenTableNo = document.getElementById('kitchen-table-no');
-    if (kitchenTableNo) kitchenTableNo.addEventListener('input', updateKitchenPreview);
-    const kitchenNotes = document.getElementById('kitchen-order-notes');
-    if (kitchenNotes) kitchenNotes.addEventListener('input', updateKitchenPreview);
-    setupAutoSync();
-});
+    if (document.getElementById('shift-modal-petty')) document.getElementById('shift-modal-petty').innerText = formatR
