@@ -1,6 +1,7 @@
 /* =========================================================
    POS KASIR - APP LOGIC (FINAL v7)
    Login STRICT: wajib cloud, tidak ada fallback lokal
+   + VARIANT CHIPS CLICKABLE
    ========================================================= */
 
 /* ==========================================
@@ -36,7 +37,6 @@ const api = {
         }
     },
 
-    /* Strict login — return detail status */
     loginUserStrict(username, pin) {
         return new Promise(async (resolve) => {
             if (!API_URL || API_URL.includes('GANTI_INI')) {
@@ -48,9 +48,9 @@ const api = {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
-    action: 'loginUser',
-    data: { username, pin }
-})
+                        action: 'loginUser',
+                        data: { username, pin }
+                    })
                 });
                 const json = await res.json();
 
@@ -61,7 +61,6 @@ const api = {
                         resolve({ status: 'denied', error: (json.data && json.data.error) || 'Login gagal' });
                     }
                 } else {
-                    // json.success === false → token expired / tenant nonaktif / dll
                     resolve({ status: 'denied', error: json.error });
                 }
             } catch (err) {
@@ -356,8 +355,8 @@ function closeShiftReceiptModal() {
    3. STATE
    ========================================== */
 const defaultProducts = [
-    { id: 1, name: "espresso single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80" },
-    { id: 2, name: "iced caramel latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80" },
+    { id: 1, name: "espresso single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
+    { id: 2, name: "iced caramel latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
     { id: 3, name: "nasi goreng special", category: "Food", price: 35000, hpp: 15000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&q=80" },
     { id: 4, name: "chicken steak", category: "Food", price: 45000, hpp: 22000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&q=80" },
     { id: 5, name: "french fries", category: "Snack", price: 20000, hpp: 8000, discountType: "percent", discountValue: 0, icon: "ri-goblet-line", image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80" },
@@ -369,7 +368,6 @@ let transactionHistory = JSON.parse(localStorage.getItem('luxe_pos_history')) ||
 let savedBills = JSON.parse(localStorage.getItem('luxe_pos_saved_bills')) || [];
 let currentPinCode = localStorage.getItem('luxe_pos_pin') || (CFG.DEFAULT_PIN || "1234");
 
-// Kredensial per-user (username → {pin, role})
 let userCredentials = JSON.parse(localStorage.getItem('luxe_pos_credentials')) || {};
 
 const defaultCoupons = [{ code: "JumatBerkah", type: "percent", value: 10, limit: 100, used: 0, active: true }];
@@ -548,7 +546,7 @@ function importLocalStorageJSON(event) {
 }
 
 /* ==========================================
-   5. AUTH — LOGIN STRICT (WAJIB CLOUD)
+   5. AUTH — LOGIN STRICT
    ========================================== */
 async function handleLogin() {
     const username = document.getElementById('kasir-name').value;
@@ -556,7 +554,6 @@ async function handleLogin() {
 
     if (!pin) { alert("PIN harus diisi!"); return; }
 
-    // Tampilkan loading
     const loginBtn = document.querySelector('.btn-login');
     const originalText = loginBtn ? loginBtn.innerHTML : '';
     if (loginBtn) {
@@ -564,7 +561,6 @@ async function handleLogin() {
         loginBtn.innerHTML = '<i class="ri-loader-4-line" style="animation: spinSync 0.8s linear infinite;"></i> MEMERIKSA...';
     }
 
-    // WAJIB tanya cloud — tidak ada fallback
     const res = await api.loginUserStrict(username, pin);
 
     if (loginBtn) {
@@ -628,7 +624,6 @@ function confirmLogout() {
     document.getElementById('login-view').style.display = 'flex';
     currentUsername = "";
     currentUserRole = 'kasir';
-    // userCredentials tetap — login berikutnya tinggal masukkan PIN yang benar
 }
 
 function applyRolePermissions() {
@@ -745,6 +740,17 @@ function calculateFinalPrice(p) {
     }
 }
 
+/* Emoji auto-mapping untuk nama varian */
+function getVariantEmoji(name) {
+    const n = String(name).toLowerCase().trim();
+    if (n.includes('hot') || n.includes('panas')) return '☕';
+    if (n.includes('ice') || n.includes('dingin') || n.includes('cold') || n.includes('es')) return '🧊';
+    if (n.includes('large') || n.includes('big')) return '📏';
+    if (n.includes('regular') || n.includes('normal')) return '⚪';
+    if (n.includes('small') || n.includes('kecil')) return '🔹';
+    return '';
+}
+
 function renderProducts(items, targetId) {
     const container = document.getElementById(targetId);
     if (!container) return;
@@ -755,6 +761,20 @@ function renderProducts(items, targetId) {
     container.innerHTML = items.map(p => {
         const finalPrice = calculateFinalPrice(p);
         const hasDiscount = finalPrice < p.price;
+
+        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+        const variantChips = hasVariants
+            ? `<div class="variant-chips">${p.variants.map((v, idx) => {
+                const emoji = getVariantEmoji(v.name);
+                const emojiHtml = emoji ? `<span class="chip-emoji">${emoji}</span>` : '';
+                return `<span class="variant-chip" onclick="addVariantToCart(${p.id}, ${idx}, event)">${emojiHtml}${v.name}</span>`;
+            }).join('')}</div>`
+            : '';
+
+        const addBtnOnclick = hasVariants
+            ? `onclick="addVariantToCart(${p.id}, 0, event)"`
+            : `onclick="addToCart(${p.id}, event)"`;
+
         return `
         <div class="product-card">
             ${currentUserRole === 'admin' ? `
@@ -767,6 +787,7 @@ function renderProducts(items, targetId) {
                 ${p.image ? `<img src="${p.image}" alt="${p.name}" onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\\'${p.icon}\\'></i>';">` : `<i class="${p.icon}"></i>`}
             </div>
             <div class="product-title">${p.name}</div>
+            ${variantChips}
             <div class="product-footer">
                 <div class="product-price">
                     ${hasDiscount ? `
@@ -774,7 +795,7 @@ function renderProducts(items, targetId) {
                         <span style="color: var(--accent);">Rp ${finalPrice.toLocaleString('id-id')}</span>
                     ` : `<span>Rp ${p.price.toLocaleString('id-id')}</span>`}
                 </div>
-                <button class="add-btn" onclick="addToCart(${p.id}, event)"><i class="ri-add-line"></i></button>
+                <button class="add-btn" ${addBtnOnclick}><i class="ri-add-line"></i></button>
             </div>
         </div>
         `;
@@ -1113,18 +1134,59 @@ function animateFlyToCart(event) {
 function addToCart(productId, event) {
     if (event) animateFlyToCart(event);
     const product = products.find(p => p.id === productId);
+    if (!product) return;
     const finalPrice = calculateFinalPrice(product);
-    const existing = cart.find(item => item.id === productId);
+    const existing = cart.find(item => item.id === productId && !item.cartKey);
     if (existing) existing.qty++;
     else cart.push({ ...product, price: finalPrice, originalPrice: product.price, qty: 1 });
     updateCart();
 }
 
+/* Tambah produk DENGAN varian ke cart */
+function addVariantToCart(productId, variantIndex, event) {
+    if (event) animateFlyToCart(event);
+    const product = products.find(p => p.id === productId);
+    if (!product || !Array.isArray(product.variants) || !product.variants[variantIndex]) {
+        addToCart(productId, event);
+        return;
+    }
+
+    const variant = product.variants[variantIndex];
+    const baseFinalPrice = calculateFinalPrice(product);
+    const delta = Number(variant.priceDelta) || 0;
+    const finalPrice = baseFinalPrice + delta;
+
+    const cartKey = product.id + '::' + variant.name;
+
+    const existing = cart.find(item => item.cartKey === cartKey);
+    if (existing) {
+        existing.qty++;
+    } else {
+        cart.push({
+            ...product,
+            cartKey: cartKey,
+            variantName: variant.name,
+            price: finalPrice,
+            originalPrice: (product.price || 0) + delta,
+            qty: 1
+        });
+    }
+    updateCart();
+}
+
 function updateQty(id, change) {
-    const item = cart.find(i => i.id === id);
+    let item;
+    if (typeof id === 'string' && id.includes('::')) {
+        item = cart.find(i => i.cartKey === id);
+    } else {
+        const numId = parseInt(id, 10);
+        item = cart.find(i => i.id === numId && !i.cartKey);
+    }
     if (item) {
         item.qty += change;
-        if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+        if (item.qty <= 0) {
+            cart = cart.filter(i => i !== item);
+        }
     }
     updateCart();
 }
@@ -1180,19 +1242,25 @@ function updateCart() {
                 </div>
             `;
         } else {
-            cartList.innerHTML = cart.map(item => `
+            cartList.innerHTML = cart.map(item => {
+                const itemKey = item.cartKey || item.id;
+                const badge = item.variantName
+                    ? `<span class="cart-variant-badge">${getVariantEmoji(item.variantName)} ${item.variantName}</span>`
+                    : '';
+                return `
                 <div class="cart-item">
                     <div>
-                        <strong style="font-size: 13px; color: var(--text-main);">${item.name}</strong>
+                        <strong style="font-size: 13px; color: var(--text-main);">${item.name}${badge}</strong>
                         <div style="font-size: 11px; color: var(--accent); font-weight: 700; margin-top: 2px;">Rp ${item.price.toLocaleString('id-id')}</div>
                     </div>
                     <div class="qty-control">
-                        <button class="qty-btn" onclick="updateQty(${item.id}, -1)">-</button>
+                        <button class="qty-btn" onclick="updateQty('${itemKey}', -1)">-</button>
                         <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">${item.qty}</span>
-                        <button class="qty-btn" onclick="updateQty(${item.id}, 1)">+</button>
+                        <button class="qty-btn" onclick="updateQty('${itemKey}', 1)">+</button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
     }
     const rawSubtotal = cart.reduce((sum, item) => {
@@ -1340,7 +1408,7 @@ function renderSavedBills() {
                 <span style="font-weight: 800; color: var(--accent);">Rp ${b.total.toLocaleString('id-id')}</span>
             </div>
             <div style="font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 6px; width: 100%;">
-                ${b.items.map(i => i.name + ' (x' + i.qty + ')').join(', ')}
+                ${b.items.map(i => i.name + (i.variantName ? ' (' + i.variantName + ')' : '') + ' (x' + i.qty + ')').join(', ')}
             </div>
             <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
                 <button class="btn-secondary" style="flex: 1; padding: 6px; font-size: 11px;" onclick="loadBillToCart(${index})">
@@ -1443,9 +1511,10 @@ function showReceiptModal(trx) {
         itemsListEl.innerHTML = trx.items.map(item => {
             const itemPrice = item.price || 0;
             const itemTotal = itemPrice * item.qty;
+            const variantText = item.variantName ? ' (' + item.variantName + ')' : '';
             return `
                 <div class="receipt-row" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                    <span>${item.name} x ${item.qty}</span>
+                    <span>${item.name}${variantText} x ${item.qty}</span>
                     <span>Rp ${itemTotal.toLocaleString('id-ID')}</span>
                 </div>
             `;
@@ -1678,7 +1747,7 @@ function exportHistoryCSV() {
     if (transactionHistory.length === 0) { alert("Tidak ada data!"); return; }
     let csvContent = "data:text/csv;charset=utf-8,ID Transaksi,Tanggal,Waktu,Kasir,Total Subtotal,Diskon Kupon,Pajak,Total Pembayaran,Tunai,Kembalian,Status Void,Detail Items\n";
     transactionHistory.forEach(trx => {
-        const itemsStr = trx.items.map(i => i.name + ' (' + i.qty + 'x)').join(' | ');
+        const itemsStr = trx.items.map(i => i.name + (i.variantName ? ' [' + i.variantName + ']' : '') + ' (' + i.qty + 'x)').join(' | ');
         const cleanDate = normalizeTrxDate(trx.date);
         const row = [
             trx.id, cleanDate, trx.time, '"' + trx.cashier + '"', trx.subtotal,
@@ -1817,7 +1886,8 @@ function billDapur() {
     cart.forEach(item => {
         const row = document.createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 700; font-size: 13px; border-bottom: 1px dotted #e2e8f0; padding-bottom: 4px;';
-        row.innerHTML = '<span>' + item.name + '</span><span>x' + item.qty + '</span>';
+        const variantText = item.variantName ? ' [' + item.variantName + ']' : '';
+        row.innerHTML = '<span>' + item.name + variantText + '</span><span>x' + item.qty + '</span>';
         itemsList.appendChild(row);
     });
     updateKitchenPreview();
@@ -2057,12 +2127,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyBranding();
     initTheme();
     updateGreeting();
-    // Login page muncul dulu — user harus login sebelum load cloud
     applyRolePermissions();
     updateCart();
     renderSavedBills();
     renderKasOverview();
-    // Note: loadFromCloud dipanggil setelah login sukses
     const filterDateInput = document.getElementById('filter-date');
     if (filterDateInput) filterDateInput.addEventListener('change', () => updateDashboardMetrics());
     const kitchenTableNo = document.getElementById('kitchen-table-no');
