@@ -1,8 +1,9 @@
 /* =========================================================
-   POS KASIR - APP LOGIC (FINAL v7.2)
+   POS KASIR - APP LOGIC (FINAL v7.3)
    - Ice Drink / Hot Drink category
    - Image upload → ImgBB via Cloudflare Worker (max 1 MB)
    - Login STRICT: wajib cloud
+   - Loading spinner animation fix
    ========================================================= */
 
 /* ==========================================
@@ -677,7 +678,7 @@ async function handleLogin() {
     const originalText = loginBtn ? loginBtn.innerHTML : '';
     if (loginBtn) {
         loginBtn.disabled = true;
-        loginBtn.innerHTML = '<i class="ri-loader-4-line" style="animation: spinSync 0.8s linear infinite;"></i> MEMERIKSA...';
+        loginBtn.innerHTML = '<i class="ri-loader-4-line" style="display: inline-block; animation: spinSync 0.8s linear infinite;"></i> MEMERIKSA...';
     }
 
     const res = await api.loginUserStrict(username, pin);
