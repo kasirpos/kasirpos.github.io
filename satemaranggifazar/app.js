@@ -1,6 +1,8 @@
 /* =========================================================
-   POS KASIR - APP LOGIC (FINAL v7)
-   Login STRICT: wajib cloud, tidak ada fallback lokal
+   POS KASIR - APP LOGIC (FINAL v7.2)
+   - Ice Drink / Hot Drink category
+   - Image upload → ImgBB via Cloudflare Worker (max 1 MB)
+   - Login STRICT: wajib cloud
    ========================================================= */
 
 /* ==========================================
@@ -14,6 +16,124 @@ const __taxPercent = (CFG.TAX_PERCENT !== undefined && CFG.TAX_PERCENT !== null 
     ? Number(CFG.TAX_PERCENT) 
     : 10;
 const TAX_RATE_CONST = __taxPercent / 100;
+
+/* ==========================================
+   AUTO-MIGRATE — Drink → Ice/Hot Drink
+   ========================================== */
+(function migrateCategories() {
+    try {
+        const stored = localStorage.getItem('luxe_pos_products');
+        if (!stored) return;
+        let prods = JSON.parse(stored);
+        if (!Array.isArray(prods)) return;
+        let changed = 0;
+        prods.forEach(p => {
+            if (p.category === 'Drink') {
+                const n = String(p.name).toLowerCase();
+                const isHot = n.includes('hot') || n.includes('panas') || n.includes('hangat');
+                p.category = isHot ? 'Hot Drink' : 'Ice Drink';
+                changed++;
+            }
+        });
+        if (changed > 0) {
+            localStorage.setItem('luxe_pos_products', JSON.stringify(prods));
+            console.log('✅ Migrated ' + changed + ' produk dari Drink → Ice/Hot Drink');
+        }
+    } catch (e) { console.warn('Migrate error:', e); }
+})();
+
+/* ==========================================
+   IMAGE UPLOAD — ImgBB via Cloudflare Worker
+   File → Worker → ImgBB → URL publik
+   Max: 1 MB
+   ========================================== */
+async function handleImageUpload(event, targetInputId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate type
+    if (!file.type.startsWith('image/')) {
+        alert('File harus berupa gambar!\nFormat: JPG, PNG, WEBP, GIF');
+        event.target.value = '';
+        return;
+    }
+
+    // Validate size — max 1 MB
+    const MAX_SIZE = 1 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+        alert(
+            'Ukuran gambar terlalu besar!\n\n' +
+            'Ukuran saat ini: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB\n' +
+            'Maksimal: 1 MB\n\n' +
+            'Silakan kompres foto terlebih dahulu.\n' +
+            'Rekomendasi: aplikasi TinyPNG, iLoveIMG, atau kompres lewat WhatsApp.'
+        );
+        event.target.value = '';
+        return;
+    }
+
+    const targetInput = document.getElementById(targetInputId);
+    const previewId = targetInputId.replace('-image', '-image-preview');
+    const thumbId = targetInputId.replace('-image', '-image-thumb');
+    const preview = document.getElementById(previewId);
+    const thumb = document.getElementById(thumbId);
+
+    // Loading state
+    if (preview) preview.style.display = 'block';
+    if (thumb) {
+        thumb.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="%2300A6FF" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.2"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg>';
+        thumb.alt = 'Uploading...';
+    }
+    if (targetInput) targetInput.value = 'Mengunggah gambar...';
+
+    try {
+        // Kirim ke Cloudflare Worker → ImgBB
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const UPLOAD_URL = 'https://poskasir.muhasa48.workers.dev/uploadImage';
+        const response = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Upload gagal');
+        }
+
+        // URL gambar dari ImgBB — auto-fill input
+        const imageUrl = result.data.url;
+
+        if (targetInput) targetInput.value = imageUrl;
+
+        // Preview dengan gambar sebenarnya
+        if (thumb) {
+            thumb.src = imageUrl;
+            thumb.alt = 'Preview';
+        }
+
+        console.log('✅ Image uploaded ke ImgBB:', imageUrl);
+
+    } catch (err) {
+        console.error('❌ Upload error:', err);
+        alert(
+            'Gagal upload gambar!\n\n' +
+            (err.message || 'Cek koneksi internet.') + '\n\n' +
+            'Tips:\n' +
+            '• Kompres gambar dulu (max 1 MB)\n' +
+            '• Coba lagi sebentar\n' +
+            '• Atau pakai URL manual dari hosting foto'
+        );
+
+        // Reset
+        if (targetInput) targetInput.value = '';
+        if (preview) preview.style.display = 'none';
+    } finally {
+        event.target.value = '';
+    }
+}
 
 const api = {
     async call(action, payload = {}) {
@@ -354,8 +474,8 @@ function closeShiftReceiptModal() {
    3. STATE
    ========================================== */
 const defaultProducts = [
-    { id: 1, name: "espresso single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80" },
-    { id: 2, name: "iced caramel latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80" },
+    { id: 1, name: "espresso single", category: "Hot Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80" },
+    { id: 2, name: "iced caramel latte", category: "Ice Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80" },
     { id: 3, name: "nasi goreng special", category: "Food", price: 35000, hpp: 15000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&q=80" },
     { id: 4, name: "chicken steak", category: "Food", price: 45000, hpp: 22000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&q=80" },
     { id: 5, name: "french fries", category: "Snack", price: 20000, hpp: 8000, discountType: "percent", discountValue: 0, icon: "ri-goblet-line", image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80" },
@@ -793,7 +913,17 @@ function renderPopularItems() {
 function filterCategory(cat, element) {
     document.querySelectorAll('.cat-chip').forEach(el => el.classList.remove('active'));
     element.classList.add('active');
-    const filtered = cat === 'all' ? products : products.filter(p => p.category === cat);
+
+    let filtered;
+    if (cat === 'all') {
+        filtered = products;
+    } else if (cat === 'Ice Drink') {
+        filtered = products.filter(p => p.category === 'Ice Drink' || p.category === 'Drink');
+    } else if (cat === 'Hot Drink') {
+        filtered = products.filter(p => p.category === 'Hot Drink');
+    } else {
+        filtered = products.filter(p => p.category === cat);
+    }
     renderProducts(filtered, 'menu-items');
 }
 
@@ -808,12 +938,15 @@ function handleSearch(query) {
 }
 
 function openAddMenuModal() { document.getElementById('add-menu-modal').style.display = 'flex'; }
+
 function closeAddMenuModal() {
     document.getElementById('add-menu-modal').style.display = 'none';
     document.getElementById('new-menu-name').value = '';
     document.getElementById('new-menu-price').value = '';
     document.getElementById('new-menu-image').value = '';
     document.getElementById('new-menu-hpp').value = '';
+    const preview = document.getElementById('new-menu-image-preview');
+    if (preview) preview.style.display = 'none';
 }
 
 function addNewProduct() {
@@ -848,10 +981,22 @@ function openEditMenuModal(productId) {
     document.getElementById('edit-menu-category').value = product.category;
     document.getElementById('edit-menu-price').value = product.price;
     document.getElementById('edit-menu-image').value = product.image || '';
+    const editPreview = document.getElementById('edit-menu-image-preview');
+    const editThumb = document.getElementById('edit-menu-image-thumb');
+    if (product.image && editPreview && editThumb) {
+        editThumb.src = product.image;
+        editPreview.style.display = 'block';
+    } else if (editPreview) {
+        editPreview.style.display = 'none';
+    }
     document.getElementById('edit-menu-modal').style.display = 'flex';
 }
 
-function closeEditMenuModal() { document.getElementById('edit-menu-modal').style.display = 'none'; }
+function closeEditMenuModal() {
+    document.getElementById('edit-menu-modal').style.display = 'none';
+    const preview = document.getElementById('edit-menu-image-preview');
+    if (preview) preview.style.display = 'none';
+}
 
 function saveEditProduct() {
     if (currentUserRole !== 'admin') { alert('Hanya admin!'); return; }
