@@ -562,3 +562,64 @@ input, textarea {
 .history-dropdown-item:active {
     transform: scale(0.98);
 }
+
+/* =========================================================
+   VARIANT CHIPS — Clickable di Card Produk
+   ========================================================= */
+.variant-chips {
+    display: flex;
+    gap: 5px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.variant-chip {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: var(--border-light);
+    color: var(--text-muted);
+    text-transform: capitalize;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.variant-chip:hover,
+.variant-chip:active {
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
+    transform: scale(0.96);
+}
+
+.variant-chip .chip-emoji {
+    font-size: 11px;
+    line-height: 1;
+    display: inline-block;
+}
+
+/* Cart — badge varian kecil di sebelah nama produk */
+.cart-variant-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 2px 7px;
+    border-radius: 99px;
+    margin-left: 5px;
+    text-transform: capitalize;
+    letter-spacing: 0.2px;
+    vertical-align: middle;
+    line-height: 1.3;
+}
