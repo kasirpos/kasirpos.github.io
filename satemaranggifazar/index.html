@@ -12,7 +12,6 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- ================= ANTI-ZOOM (override style.css) ================= -->
     <style>
         html, body {
             touch-action: pan-x pan-y;
@@ -24,7 +23,6 @@
             -webkit-user-select: none;
             user-select: none;
         }
-        /* Cegah iOS auto-zoom saat fokus ke input */
         input, textarea, select {
             font-size: 16px !important;
             -webkit-user-select: text !important;
@@ -32,38 +30,26 @@
         }
     </style>
 
-    <!-- ================= AUTH + ANTI-ZOOM SCRIPT ================= -->
     <script>
     (function() {
-        /* ---------- ANTI-ZOOM ---------- */
-        // Pinch-zoom (iOS Safari)
         ['gesturestart','gesturechange','gestureend'].forEach(function(evt){
             document.addEventListener(evt, function(e){ e.preventDefault(); }, { passive: false });
         });
-
-        // Double-tap zoom
         var _lastTouchZoom = 0;
         document.addEventListener('touchend', function(e) {
             var now = Date.now();
             if (now - _lastTouchZoom <= 300) e.preventDefault();
             _lastTouchZoom = now;
         }, { passive: false });
-
-        // Ctrl + scroll (desktop)
         document.addEventListener('wheel', function(e) {
             if (e.ctrlKey) e.preventDefault();
         }, { passive: false });
-
-        // Ctrl + / - / 0 (desktop)
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && ['+','-','=','0'].includes(e.key)) e.preventDefault();
         });
 
-        /* ---------- AUTH CHECK ---------- */
         const REQUIRED_TENANT = 'satemaranggifazar';
         const ROOT_LOGIN_URL = 'https://kasirpos.github.io/';
-
-        // API lewat Cloudflare Worker. Token tidak ada di sini.
         const API_URL_CFG = 'https://poskasir.muhasa48.workers.dev/pos?tenant=satemaranggifazar';
 
         try {
@@ -73,12 +59,10 @@
                 return;
             }
             const session = JSON.parse(sessionStr);
-
             if (!session.tenantId || session.tenantId !== REQUIRED_TENANT) {
                 window.location.replace(ROOT_LOGIN_URL);
                 return;
             }
-
             const loginAt = new Date(session.loginAt);
             const hoursSinceLogin = (new Date() - loginAt) / (1000 * 60 * 60);
             if (hoursSinceLogin > 24) {
@@ -86,10 +70,7 @@
                 window.location.replace(ROOT_LOGIN_URL);
                 return;
             }
-
             console.log('✅ Auth OK:', session.storeName);
-
-            // Ping ke Worker (untuk cek token masih valid)
             if (API_URL_CFG && !API_URL_CFG.includes('ISI_URL')) {
                 fetch(API_URL_CFG, {
                     method: 'POST',
@@ -275,7 +256,8 @@
             <div class="input-group">
                 <label style="color: var(--text-muted);">Kategori</label>
                 <select id="new-menu-category" style="background: var(--bg-app); border-color: var(--border); color: var(--text-main);">
-                    <option value="Drink">Drink</option>
+                    <option value="Ice Drink">Ice Drink</option>
+                    <option value="Hot Drink">Hot Drink</option>
                     <option value="Food">Food</option>
                     <option value="Snack">Snack</option>
                     <option value="Dessert">Dessert</option>
@@ -287,7 +269,19 @@
             </div>
             <div class="input-group">
                 <label style="color: var(--text-muted);">URL Foto / Gambar menu</label>
-                <input type="text" id="new-menu-image" placeholder="https://... (opsional)" style="background: var(--bg-app); border-color: var(--border); color: var(--text-main);">
+                <div style="position: relative;">
+                    <input type="text" id="new-menu-image" placeholder="https://... atau pilih dari file" style="background: var(--bg-app); border-color: var(--border); color: var(--text-main); padding-right: 46px;">
+                    <button type="button" title="Pilih dari file manager" onclick="document.getElementById('new-menu-image-file').click()" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; padding: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+                        <i class="ri-folder-open-line"></i>
+                    </button>
+                    <input type="file" id="new-menu-image-file" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'new-menu-image')">
+                </div>
+                <div id="new-menu-image-preview" style="display: none; margin-top: 8px; padding: 6px; background: var(--bg-app); border: 1px solid var(--border); border-radius: 10px; text-align: center;">
+                    <img id="new-menu-image-thumb" style="max-width: 100%; max-height: 100px; border-radius: 8px; object-fit: cover;" alt="preview">
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+                    💡 URL lebih ringan. Kalau upload file, disarankan maksimal <b>200 KB</b>.
+                </div>
             </div>
             <div class="input-group">
             <label style="color: var(--text-muted);">HPP / Modal (Rp)</label>
@@ -315,7 +309,8 @@
             <div class="input-group">
                 <label style="color: var(--text-muted);">Kategori</label>
                 <select id="edit-menu-category" style="background: var(--bg-app); border-color: var(--border); color: var(--text-main);">
-                    <option value="Drink">Drink</option>
+                    <option value="Ice Drink">Ice Drink</option>
+                    <option value="Hot Drink">Hot Drink</option>
                     <option value="Food">Food</option>
                     <option value="Snack">Snack</option>
                     <option value="Dessert">Dessert</option>
@@ -327,7 +322,16 @@
             </div>
             <div class="input-group">
                 <label style="color: var(--text-muted);">URL Foto / Gambar Menu</label>
-                <input type="text" id="edit-menu-image" style="background: var(--bg-app); border-color: var(--border); color: var(--text-main);">
+                <div style="position: relative;">
+                    <input type="text" id="edit-menu-image" style="background: var(--bg-app); border-color: var(--border); color: var(--text-main); padding-right: 46px;">
+                    <button type="button" title="Pilih dari file manager" onclick="document.getElementById('edit-menu-image-file').click()" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; padding: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+                        <i class="ri-folder-open-line"></i>
+                    </button>
+                    <input type="file" id="edit-menu-image-file" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'edit-menu-image')">
+                </div>
+                <div id="edit-menu-image-preview" style="display: none; margin-top: 8px; padding: 6px; background: var(--bg-app); border: 1px solid var(--border); border-radius: 10px; text-align: center;">
+                    <img id="edit-menu-image-thumb" style="max-width: 100%; max-height: 100px; border-radius: 8px; object-fit: cover;" alt="preview">
+                </div>
             </div>
             <div class="input-group">
             <label style="color: var(--text-muted);">HPP / Modal (Rp)</label>
@@ -589,7 +593,8 @@
     
     <div class="category-scroll">
     <div class="cat-chip active" onclick="filterCategory('all', this)"><i class="ri-layout-grid-fill"></i> Semua</div>
-    <div class="cat-chip" onclick="filterCategory('Drink', this)"><i class="ri-cup-line"></i> Drink</div>
+    <div class="cat-chip" onclick="filterCategory('Ice Drink', this)"><i class="ri-cup-line"></i> Ice Drink</div>
+    <div class="cat-chip" onclick="filterCategory('Hot Drink', this)"><i class="ri-cup-line"></i> Hot Drink</div>
     <div class="cat-chip" onclick="filterCategory('Food', this)"><i class="ri-restaurant-line"></i> Food</div>
     <div class="cat-chip" onclick="filterCategory('Snack', this)"><i class="ri-goblet-line"></i> Snack</div>
     <div class="cat-chip" onclick="filterCategory('Dessert', this)"><i class="ri-cake-3-line"></i> Dessert</div>
