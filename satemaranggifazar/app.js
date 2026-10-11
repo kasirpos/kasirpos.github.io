@@ -1,7 +1,7 @@
 /* =========================================================
-   POS KASIR - APP LOGIC (FINAL v7)
+   POS KASIR - APP LOGIC (FINAL v8)
    Login STRICT: wajib cloud, tidak ada fallback lokal
-   + VARIANT CHIPS CLICKABLE
+   + VARIANT CHIPS CLICKABLE (SVG Icons)
    ========================================================= */
 
 /* ==========================================
@@ -16,10 +16,63 @@ const __taxPercent = (CFG.TAX_PERCENT !== undefined && CFG.TAX_PERCENT !== null 
     : 10;
 const TAX_RATE_CONST = __taxPercent / 100;
 
+/* ==========================================
+   SVG ICONS — HOT & ICE (Rapi, Professional)
+   ========================================== */
+const SVG_HOT = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h13v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5z"/><path d="M17 11h1a2.5 2.5 0 0 1 0 5h-1"/><path d="M8 3c0 1 .6 1.5.6 2.5S8 7 8 8"/><path d="M12 3c0 1 .6 1.5.6 2.5S12 7 12 8"/></svg>';
+
+const SVG_ICE = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>';
+
+/* ==========================================
+   AUTO-MIGRATE — Inject variant ke produk lama
+   ========================================== */
+(function autoMigrateVariants() {
+    try {
+        const stored = localStorage.getItem('luxe_pos_products');
+        if (!stored) return;
+
+        let prods = JSON.parse(stored);
+        if (!Array.isArray(prods)) return;
+
+        let migrated = 0;
+
+        prods.forEach(prod => {
+            if (prod.variants && prod.variants.length) return;
+            if (prod.category !== 'Drink') return;
+
+            const n = String(prod.name).toLowerCase();
+
+            if (n.includes('ice') && (n.includes('tea') || n.includes('teh') || n.includes('lemon'))) {
+                prod.variants = [
+                    { name: 'Hot', priceDelta: 0 },
+                    { name: 'Ice', priceDelta: 0 }
+                ];
+                migrated++;
+            } else if (n.includes('kopi') || n.includes('espresso') || n.includes('latte')) {
+                prod.variants = [
+                    { name: 'Hot', priceDelta: 0 },
+                    { name: 'Ice', priceDelta: 3000 }
+                ];
+                migrated++;
+            } else if (n.includes('juice') || n.includes('jus')) {
+                prod.variants = [{ name: 'Ice', priceDelta: 0 }];
+                migrated++;
+            }
+        });
+
+        if (migrated > 0) {
+            localStorage.setItem('luxe_pos_products', JSON.stringify(prods));
+            console.log('✅ Auto-migrate: ' + migrated + ' produk diinject varian');
+        }
+    } catch (e) {
+        console.warn('Auto-migrate skip:', e);
+    }
+})();
+
 const api = {
     async call(action, payload = {}) {
         if (!API_URL || API_URL.includes('GANTI_INI')) {
-            console.warn('⚠️ API_URL belum dikonfigurasi di config.js');
+            console.warn('⚠️ API_URL belum dikonfigurasi');
             return null;
         }
         try {
@@ -138,9 +191,6 @@ async function loadFromCloud() {
     return true;
 }
 
-/* =========================================
-   AUTO SYNC
-   ========================================= */
 function hashData(obj) {
     try { return JSON.stringify(obj); } catch(e) { return ''; }
 }
@@ -355,12 +405,12 @@ function closeShiftReceiptModal() {
    3. STATE
    ========================================== */
 const defaultProducts = [
-    { id: 1, name: "espresso single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
-    { id: 2, name: "iced caramel latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
-    { id: 3, name: "nasi goreng special", category: "Food", price: 35000, hpp: 15000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&q=80" },
-    { id: 4, name: "chicken steak", category: "Food", price: 45000, hpp: 22000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&q=80" },
-    { id: 5, name: "french fries", category: "Snack", price: 20000, hpp: 8000, discountType: "percent", discountValue: 0, icon: "ri-goblet-line", image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80" },
-    { id: 7, name: "choco lava cake", category: "Dessert", price: 25000, hpp: 11000, discountType: "percent", discountValue: 0, icon: "ri-cake-3-line", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&q=80" }
+    { id: 1, name: "Espresso Single", category: "Drink", price: 18000, hpp: 5000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
+    { id: 2, name: "Iced Caramel Latte", category: "Drink", price: 28000, hpp: 10000, discountType: "percent", discountValue: 0, icon: "ri-cup-line", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80", variants: [{ name: "Hot", priceDelta: 0 }, { name: "Ice", priceDelta: 3000 }] },
+    { id: 3, name: "Nasi Goreng Special", category: "Food", price: 35000, hpp: 15000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&q=80" },
+    { id: 4, name: "Chicken Steak", category: "Food", price: 45000, hpp: 22000, discountType: "percent", discountValue: 0, icon: "ri-restaurant-line", image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&q=80" },
+    { id: 5, name: "French Fries", category: "Snack", price: 20000, hpp: 8000, discountType: "percent", discountValue: 0, icon: "ri-goblet-line", image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80" },
+    { id: 7, name: "Choco Lava Cake", category: "Dessert", price: 25000, hpp: 11000, discountType: "percent", discountValue: 0, icon: "ri-cake-3-line", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&q=80" }
 ];
 
 let products = JSON.parse(localStorage.getItem('luxe_pos_products')) || defaultProducts;
@@ -546,7 +596,7 @@ function importLocalStorageJSON(event) {
 }
 
 /* ==========================================
-   5. AUTH — LOGIN STRICT
+   5. AUTH
    ========================================== */
 async function handleLogin() {
     const username = document.getElementById('kasir-name').value;
@@ -740,14 +790,11 @@ function calculateFinalPrice(p) {
     }
 }
 
-/* Emoji auto-mapping untuk nama varian */
-function getVariantEmoji(name) {
+/* SVG Icon untuk varian — rapi & sejajar */
+function getVariantIcon(name) {
     const n = String(name).toLowerCase().trim();
-    if (n.includes('hot') || n.includes('panas')) return '☕';
-    if (n.includes('ice') || n.includes('dingin') || n.includes('cold') || n.includes('es')) return '🧊';
-    if (n.includes('large') || n.includes('big')) return '📏';
-    if (n.includes('regular') || n.includes('normal')) return '⚪';
-    if (n.includes('small') || n.includes('kecil')) return '🔹';
+    if (n.includes('hot') || n.includes('panas')) return SVG_HOT;
+    if (n.includes('ice') || n.includes('dingin') || n.includes('cold') || n.includes('es')) return SVG_ICE;
     return '';
 }
 
@@ -765,9 +812,8 @@ function renderProducts(items, targetId) {
         const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
         const variantChips = hasVariants
             ? `<div class="variant-chips">${p.variants.map((v, idx) => {
-                const emoji = getVariantEmoji(v.name);
-                const emojiHtml = emoji ? `<span class="chip-emoji">${emoji}</span>` : '';
-                return `<span class="variant-chip" onclick="addVariantToCart(${p.id}, ${idx}, event)">${emojiHtml}${v.name}</span>`;
+                const icon = getVariantIcon(v.name);
+                return `<span class="variant-chip" onclick="addVariantToCart(${p.id}, ${idx}, event)">${icon}${v.name}</span>`;
             }).join('')}</div>`
             : '';
 
@@ -856,7 +902,7 @@ function addNewProduct() {
     if (category === "Snack") icon = "ri-goblet-line";
     if (category === "Dessert") icon = "ri-cake-3-line";
     const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    const newProduct = { id: newId, name, category, price, hpp, discountType: "percent", discountValue: 0, icon, image: imageUrl };
+    const newProduct = { id: newId, name, category, price, hpp, discountType: "percent", discountValue: 0, icon, image: imageUrl, variants: [] };
     products.push(newProduct);
     saveState();
     api.saveProduct(newProduct);
@@ -1142,7 +1188,6 @@ function addToCart(productId, event) {
     updateCart();
 }
 
-/* Tambah produk DENGAN varian ke cart */
 function addVariantToCart(productId, variantIndex, event) {
     if (event) animateFlyToCart(event);
     const product = products.find(p => p.id === productId);
@@ -1245,7 +1290,7 @@ function updateCart() {
             cartList.innerHTML = cart.map(item => {
                 const itemKey = item.cartKey || item.id;
                 const badge = item.variantName
-                    ? `<span class="cart-variant-badge">${getVariantEmoji(item.variantName)} ${item.variantName}</span>`
+                    ? `<span class="cart-variant-badge">${getVariantIcon(item.variantName)}<span>${item.variantName}</span></span>`
                     : '';
                 return `
                 <div class="cart-item">
