@@ -24,21 +24,6 @@ window.APP_CONFIG = {
     ENABLE_CASHFLOW:       true,
     ENABLE_COUPON:         true,
 
-    // ==== VIEW PREFERENCE ====
-    DEFAULT_VIEW: 'grid',    // 'grid' atau 'list'
-
-    // ==== VARIANT PRESETS (untuk referensi admin) ====
-    VARIANT_PRESETS: {
-        temperature: [
-            { name: 'Hot', priceDelta: 0 },
-            { name: 'Ice', priceDelta: 3000 }
-        ],
-        size: [
-            { name: 'Regular', priceDelta: 0 },
-            { name: 'Large', priceDelta: 5000 }
-        ]
-    },
-
     // ==== INFO VERSI ====
     VERSION: 'v1.1.5',
 
