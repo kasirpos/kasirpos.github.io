@@ -1957,4 +1957,109 @@ function openTutupShiftModal() {
     if (document.getElementById('shift-modal-kasir')) document.getElementById('shift-modal-kasir').innerText = namaKasir;
     if (document.getElementById('shift-modal-awal')) document.getElementById('shift-modal-awal').innerText = formatRupiah(modalAwal);
     if (document.getElementById('shift-modal-tunai')) document.getElementById('shift-modal-tunai').innerText = formatRupiah(tunaiPenjualan);
-    if (document.getElementById('shift-modal-petty')) document.getElementById('shift-modal-petty').innerText = formatR
+    if (document.getElementById('shift-modal-petty')) document.getElementById('shift-modal-petty').innerText = formatRupiah(totalPetty);
+    if (document.getElementById('shift-modal-ekspektasi')) document.getElementById('shift-modal-ekspektasi').innerText = formatRupiah(ekspektasiKas);
+    if (document.getElementById('shift-input-fisik')) document.getElementById('shift-input-fisik').value = '';
+    if (document.getElementById('shift-selisih-val')) document.getElementById('shift-selisih-val').innerText = 'Rp 0';
+    const tutupShiftModal = document.getElementById('tutup-shift-modal');
+    if (tutupShiftModal) tutupShiftModal.style.display = 'flex';
+}
+
+function closeTutupShiftModal() {
+    const tutupShiftModal = document.getElementById('tutup-shift-modal');
+    if (tutupShiftModal) tutupShiftModal.style.display = 'none';
+}
+
+function hitungSelisihShift() {
+    const totalPetty = pettyCashList.reduce((sum, item) => sum + item.nominal, 0);
+    const ekspektasi = modalAwal - totalPetty;
+    const fisik = parseFloat(document.getElementById('shift-input-fisik').value) || 0;
+    const selisih = fisik - ekspektasi;
+    const el = document.getElementById('shift-selisih-val');
+    if (el) {
+        el.innerText = formatRupiah(selisih);
+        el.style.color = selisih < 0 ? 'var(--danger)' : (selisih > 0 ? 'var(--success)' : 'var(--text-main)');
+    }
+}
+
+function prosesCetakLaporanShift() {
+    const totalPetty = pettyCashList.reduce((sum, item) => sum + item.nominal, 0);
+    const tunaiPenjualan = 0;
+    const ekspektasiKas = modalAwal + tunaiPenjualan - totalPetty;
+    const fisik = parseFloat(document.getElementById('shift-input-fisik').value) || 0;
+    const selisih = fisik - ekspektasiKas;
+    const namaKasir = document.getElementById('profile-name') ? document.getElementById('profile-name').innerText : 'Kasir';
+    if (document.getElementById('sr-waktu')) document.getElementById('sr-waktu').innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    if (document.getElementById('sr-kasir')) document.getElementById('sr-kasir').innerText = namaKasir;
+    if (document.getElementById('sr-modal')) document.getElementById('sr-modal').innerText = formatRupiah(modalAwal);
+    if (document.getElementById('sr-petty')) document.getElementById('sr-petty').innerText = formatRupiah(totalPetty);
+    if (document.getElementById('sr-ekspektasi')) document.getElementById('sr-ekspektasi').innerText = formatRupiah(ekspektasiKas);
+    if (document.getElementById('sr-fisik')) document.getElementById('sr-fisik').innerText = formatRupiah(fisik);
+    if (document.getElementById('sr-selisih')) document.getElementById('sr-selisih').innerText = formatRupiah(selisih);
+    const pettyContainer = document.getElementById('sr-petty-list');
+    if (pettyContainer) {
+        if (pettyCashList.length === 0) {
+            pettyContainer.innerHTML = '<div style="font-style: italic;">(Tidak ada transaksi)</div>';
+        } else {
+            pettyContainer.innerHTML = pettyCashList.map(item => `
+                <div style="display: flex; justify-content: space-between;">
+                    <span>- ${item.keterangan}</span>
+                    <span>${formatRupiah(item.nominal)}</span>
+                </div>
+            `).join('');
+        }
+    }
+    resetShiftData();
+    closeTutupShiftModal();
+    openShiftReceiptModal();
+}
+
+function resetShiftData() {
+    modalAwal = 0;
+    pettyCashList = [];
+    localStorage.removeItem('pos_modal_awal');
+    localStorage.removeItem('pos_petty_cash');
+    renderKasOverview();
+}
+
+function eksekusiPrint() { window.print(); }
+
+/* ==========================================
+   14. PROTEKSI
+   ========================================== */
+document.addEventListener('copy', function(e) { e.preventDefault(); });
+document.addEventListener('cut', function(e) { e.preventDefault(); });
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+document.addEventListener('keydown', function(e) {
+    const key = e.key.toLowerCase();
+    if (e.key === 'F12') { e.preventDefault(); return false; }
+    if ((e.ctrlKey && ['c', 'x', 'u', 's'].includes(key)) ||
+        (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))) {
+        if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return true;
+        e.preventDefault();
+        return false;
+    }
+});
+
+/* ==========================================
+   15. INIT
+   ========================================== */
+document.addEventListener('DOMContentLoaded', async () => {
+    const jsonInput = document.getElementById('json-import-input');
+    if (jsonInput) jsonInput.addEventListener('change', importLocalStorageJSON);
+    applyBranding();
+    initTheme();
+    updateGreeting();
+    applyRolePermissions();
+    updateCart();
+    renderSavedBills();
+    renderKasOverview();
+    const filterDateInput = document.getElementById('filter-date');
+    if (filterDateInput) filterDateInput.addEventListener('change', () => updateDashboardMetrics());
+    const kitchenTableNo = document.getElementById('kitchen-table-no');
+    if (kitchenTableNo) kitchenTableNo.addEventListener('input', updateKitchenPreview);
+    const kitchenNotes = document.getElementById('kitchen-order-notes');
+    if (kitchenNotes) kitchenNotes.addEventListener('input', updateKitchenPreview);
+    setupAutoSync();
+});
